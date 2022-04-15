@@ -348,9 +348,9 @@ async fn main() {
                 }
                 // Check of it is user input event
                 p2p::EventType::Input(line) => match line.as_str() {
-                    "ls p" => p2p::handle_print_peers(&swarm), // Print the peers connected to the network
-                    cmd if cmd.starts_with("ls c") => p2p::handle_print_chain(&swarm), // Print the current chain
-                    cmd if cmd.starts_with("create b") => p2p::handle_create_block(cmd, &mut swarm), // Mine new block
+                    "list peers" => p2p::handle_print_peers(&swarm), // Print the peers connected to the network
+                    cmd if cmd.starts_with("list chain") => p2p::handle_print_chain(&swarm), // Print the current chain
+                    cmd if cmd.starts_with("create block") => p2p::handle_create_block(cmd, &mut swarm), // Mine new block
                     _ => error!("unknown command"), // Other commands
                 },
             }

@@ -168,7 +168,7 @@ pub fn handle_print_chain(swarm: &Swarm<AppBehaviour>) {
 // Function to mine a new block
 pub fn handle_create_block(cmd: &str, swarm: &mut Swarm<AppBehaviour>) {
     // Extract string data from std input
-    if let Some(data) = cmd.strip_prefix("create b") {
+    if let Some(data) = cmd.strip_prefix("create block ") {
         let behaviour = swarm.behaviour_mut(); // Get the App behaviour
         let latest_block = behaviour // Get the latest block
             .app
