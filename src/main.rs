@@ -57,7 +57,7 @@ impl App {
             nonce: 2863,
             hash: "0000f816a87f806bb0073dcf026a64fb40c946b5abee2573702828694d5b4c43".to_string(),
         }; */
-        let genesis_block = Block::new(0, "NULL".to_string(), "GENESIS BLOCK".to_string());
+        let genesis_block = Block::new_genesis(0, "NULL".to_string(), "GENESIS BLOCK".to_string());
         self.blocks.push(genesis_block); // Push the genesis block to the blockchain
     }
 
@@ -65,14 +65,20 @@ impl App {
     fn validate_block(&self, block: &Block, prev_block: &Block) -> bool {
         // Check if the previous hash value matches the has value of the last block
         if block.prev_hash != prev_block.hash {
-            println!("WARNING => Block with id: {} has wrong previous hash", block.id);
+            println!(
+                "WARNING => Block with id: {} has wrong previous hash",
+                block.id
+            );
             return false;
         }
         // Check if difficulty is satisified (requirement)
         else if !hash_to_binary(&hex::decode(&block.hash).expect("can decode from hex"))
             .starts_with(DIFFICULTY_PREFIX)
         {
-            println!("WARNING => Block with id: {} has invalid difficulty", block.id);
+            println!(
+                "WARNING => Block with id: {} has invalid difficulty",
+                block.id
+            );
             return false;
         }
         // Check if the block ID is correct
@@ -118,7 +124,7 @@ impl App {
                 continue;
             }
             // Get the first block
-            let first = chain.get(i).expect("has to exist");
+            let first = chain.get(i - 1).expect("has to exist");
             // Get the second Block
             let second = chain.get(i).expect("has to exist");
             // Validate both Blocks
@@ -160,7 +166,7 @@ impl App {
 // Function to mine a block (calculate nonce and hash of Block)
 fn mine_block(id: u64, time_stamp: i64, prev_hash: &str, data: &str) -> (u64, String) {
     // info!("mining block...");
-    println!("INFO => Mining block...");    
+    println!("INFO => Mining block...");
     // Initialize nonce value
     let mut nonce = 0;
     // Infinite loop till nonce is calculated
@@ -228,6 +234,20 @@ impl Block {
             id,
             hash,
             time_stamp: now.timestamp(),
+            prev_hash,
+            data,
+            nonce,
+        }
+    }
+    // Function to create a new genesis block
+    pub fn new_genesis(id: u64, prev_hash: String, data: String) -> Self {
+        // Calculate the nonce and the hash
+        let (nonce, hash) = mine_block(id, 0, &prev_hash, &data);
+        // Create a new Block
+        Self {
+            id,
+            hash,
+            time_stamp: 0,
             prev_hash,
             data,
             nonce,
@@ -350,12 +370,33 @@ async fn main() {
                 }
                 // Check of it is user input event
                 p2p::EventType::Input(line) => match line.as_str() {
-                    "list peers" => p2p::handle_print_peers(&swarm), // Print the peers connected to the network
+                    "print peers" => p2p::handle_print_peers(&swarm), // Print the peers connected to the network
                     cmd if cmd.starts_with("print chain") => p2p::handle_print_chain(&swarm), // Print the current chain
                     cmd if cmd.starts_with("create block") => {
                         p2p::handle_create_block(cmd, &mut swarm)
                     } // Mine new block
                     cmd if cmd.starts_with("exit") => break,
+                    cmd if cmd.starts_with("update chain") => {
+                        let peers = p2p::get_list_peers(&swarm); // Obtain the connected peers
+                        if !peers.is_empty() {
+                            // Check if peers are connected
+                            // Request chain from last peer
+                            let req = p2p::LocalChainRequest {
+                                from_peer_id: peers
+                                    .iter()
+                                    .last()
+                                    .expect("at least one peer")
+                                    .to_string(),
+                            };
+                            // JSONify the request
+                            let json = serde_json::to_string(&req).expect("can jsonify request");
+                            // Publish the request to the network
+                            swarm
+                                .behaviour_mut()
+                                .floodsub
+                                .publish(p2p::CHAIN_TOPIC.clone(), json.as_bytes());
+                        }
+                    }
                     // _ => error!("unknown command"), // Other commands
                     _ => println!("ERROR => unknown command"), // Other commands
                 },
