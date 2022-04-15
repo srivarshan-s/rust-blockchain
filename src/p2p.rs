@@ -104,15 +104,15 @@ impl NetworkBehaviourEventProcess<FloodsubEvent> for AppBehaviour {
             // Check if event is ChainResponse
             if let Ok(resp) = serde_json::from_slice::<ChainResponse>(&msg.data) {
                 if resp.receiver == PEER_ID.to_string() {
-                    info!("Response from {}:", msg.source);
-                    resp.blocks.iter().for_each(|r| info!("{:?}", r));
+                    println!("INFO => Response from {}:", msg.source);
+                    resp.blocks.iter().for_each(|r| println!("INFO => {:?}", r));
                     // Compare both local and received chain and choose chain
                     self.app.blocks = self.app.choose_chain(self.app.blocks.clone(), resp.blocks);
                 }
             }
             // Check if event is LocalChainRequest
             else if let Ok(resp) = serde_json::from_slice::<LocalChainRequest>(&msg.data) {
-                info!("sending local chain to {}", msg.source.to_string());
+                println!("INFO => Sending local chain to {}", msg.source.to_string());
                 let peer_id = resp.from_peer_id;
                 // Send ChainResponse with chain and receiver
                 if PEER_ID.to_string() == peer_id {
@@ -127,7 +127,7 @@ impl NetworkBehaviourEventProcess<FloodsubEvent> for AppBehaviour {
             }
             // Check if event is a Block
             else if let Ok(block) = serde_json::from_slice::<Block>(&msg.data) {
-                info!("received new block from {}", msg.source.to_string());
+                println!("INFO => Received new block from {}", msg.source.to_string());
                 // Add block to chain
                 self.app.try_add_block(block);
             }
@@ -137,7 +137,7 @@ impl NetworkBehaviourEventProcess<FloodsubEvent> for AppBehaviour {
 
 // Function to list the number of peers connected to the network
 pub fn get_list_peers(swarm: &Swarm<AppBehaviour>) -> Vec<String> {
-    info!("Discovered Peers:");
+    println!("INFO => Discovered Peers:");
     // Get the list of peers
     let nodes = swarm.behaviour().mdns.discovered_nodes();
     // Initialize a Hash Set
@@ -153,17 +153,17 @@ pub fn get_list_peers(swarm: &Swarm<AppBehaviour>) -> Vec<String> {
 // Function to print the peers connected to the network
 pub fn handle_print_peers(swarm: &Swarm<AppBehaviour>) {
     let peers = get_list_peers(swarm); // Get Hash Set of connected unique peers
-    peers.iter().for_each(|p| info!("{}", p)); // Print all peers
+    peers.iter().for_each(|p| println!("INFO => {}", p)); // Print all peers
 }
 
 // Function to print the current block chain
 pub fn handle_print_chain(swarm: &Swarm<AppBehaviour>) {
-    info!("Local Blockchain:");
+    println!("INFO => Local Blockchain:");
     // JSONify all the blocks
     let pretty_json =
         serde_json::to_string_pretty(&swarm.behaviour().app.blocks).expect("can jsonify blocks");
     // Print the JSONified blocks
-    info!("{}", pretty_json);
+    println!("INFO => {}", pretty_json);
 }
 
 // Function to mine a new block
@@ -187,7 +187,7 @@ pub fn handle_create_block(cmd: &str, swarm: &mut Swarm<AppBehaviour>) {
         // Add the block to the chain
         behaviour.app.blocks.push(block);
         // Bradcast the new block to the other nodes in the network
-        info!("broadcasting new block");
+        println!("INFO => broadcasting new block");
         behaviour
             .floodsub
             .publish(BLOCK_TOPIC.clone(), json.as_bytes());

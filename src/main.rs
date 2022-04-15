@@ -65,20 +65,20 @@ impl App {
     fn validate_block(&self, block: &Block, prev_block: &Block) -> bool {
         // Check if the previous hash value matches the has value of the last block
         if block.prev_hash != prev_block.hash {
-            warn!("block with id: {} has wrong previous hash", block.id);
+            println!("WARNING => Block with id: {} has wrong previous hash", block.id);
             return false;
         }
         // Check if difficulty is satisified (requirement)
         else if !hash_to_binary(&hex::decode(&block.hash).expect("can decode from hex"))
             .starts_with(DIFFICULTY_PREFIX)
         {
-            warn!("block with id: {} has invalid difficulty", block.id);
+            println!("WARNING => Block with id: {} has invalid difficulty", block.id);
             return false;
         }
         // Check if the block ID is correct
         else if block.id != prev_block.id + 1 {
-            warn!(
-                "block with id: {} is not the next block after the latest block: {}",
+            println!(
+                "WARNING => Block with id: {} is not the next block after the latest block: {}",
                 block.id, prev_block.id,
             );
             return false;
@@ -92,7 +92,7 @@ impl App {
             block.nonce,
         )) != block.hash
         {
-            warn!("block with id: {} has invalid hash", block.id);
+            println!("WARNING => block with id: {} has invalid hash", block.id);
             return false;
         }
         true
@@ -159,22 +159,23 @@ impl App {
 
 // Function to mine a block (calculate nonce and hash of Block)
 fn mine_block(id: u64, time_stamp: i64, prev_hash: &str, data: &str) -> (u64, String) {
-    info!("mining block...");
+    // info!("mining block...");
+    println!("INFO => Mining block...");    
     // Initialize nonce value
     let mut nonce = 0;
     // Infinite loop till nonce is calculated
     loop {
-        if nonce % 100000 == 0 {
+        /* if nonce % 100000 == 0 {
             info!("nonce: {}", nonce);
-        }
+        } */
         // Calculate the hash value
         let hash = calculate_hash(id, time_stamp, prev_hash, data, nonce);
         // Convert hash value to binary
         let binary_hash = hash_to_binary(&hash);
         // Check if hash value satisifies requirement (difficulty)
         if binary_hash.starts_with(DIFFICULTY_PREFIX) {
-            info!(
-                "mined! nonce: {}, hash: {}, binary hash: {}",
+            println!(
+                "INFO => Block mined! \nnonce: {} \nhash: {} \nbinary hash: {}",
                 nonce,
                 hex::encode(&hash),
                 binary_hash
@@ -241,7 +242,7 @@ async fn main() {
     pretty_env_logger::init();
 
     // Print PEER ID
-    info!("Peer Id: {}", p2p::PEER_ID.clone());
+    println!("INFO => Peer Id: {}", p2p::PEER_ID.clone());
 
     // Initialize Response Event Channel
     let (response_sender, mut response_rcv) = mpsc::unbounded_channel();
@@ -285,7 +286,7 @@ async fn main() {
     // Start asynchronous coroutine
     spawn(async move {
         sleep(Duration::from_secs(1)).await; // Wait for 1 second
-        info!("sending init event");
+        println!("INFO => Sending init event");
         init_sender.send(true).expect("can send init event"); // Send Initialization trigger
     });
 
@@ -303,7 +304,7 @@ async fn main() {
                     Some(p2p::EventType::Init)
                 }
                 event = swarm.select_next_some() => { // Other event (can be ignored)
-                    info!("Unhandled Swarm Event: {:?}", event);
+                    // info!("Unhandled Swarm Event: {:?}", event);
                     None
                 },
             }
@@ -317,7 +318,7 @@ async fn main() {
                     let peers = p2p::get_list_peers(&swarm); // Obtain the connected peers
                     swarm.behaviour_mut().app.genesis(); // Create the genesis block
                                                          // Print the connected nodes
-                    info!("connected nodes: {}", peers.len());
+                    println!("INFO => Connected nodes: {}", peers.len());
                     if !peers.is_empty() {
                         // Check if peers are connected
                         // Request chain from last peer
@@ -351,7 +352,9 @@ async fn main() {
                 p2p::EventType::Input(line) => match line.as_str() {
                     "list peers" => p2p::handle_print_peers(&swarm), // Print the peers connected to the network
                     cmd if cmd.starts_with("print chain") => p2p::handle_print_chain(&swarm), // Print the current chain
-                    cmd if cmd.starts_with("create block") => p2p::handle_create_block(cmd, &mut swarm), // Mine new block
+                    cmd if cmd.starts_with("create block") => {
+                        p2p::handle_create_block(cmd, &mut swarm)
+                    } // Mine new block
                     cmd if cmd.starts_with("exit") => break,
                     // _ => error!("unknown command"), // Other commands
                     _ => println!("ERROR => unknown command"), // Other commands
