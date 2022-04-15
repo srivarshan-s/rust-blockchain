@@ -120,7 +120,8 @@ impl NetworkBehaviourEventProcess<FloodsubEvent> for AppBehaviour {
                         blocks: self.app.blocks.clone(),
                         receiver: msg.source.to_string(),
                     }) {
-                        error!("error sending response via channel, {}", e);
+                        // error!("error sending response via channel, {}", e);
+                        println!("ERROR => error sending response via channel, {}", e);
                     }
                 }
             }

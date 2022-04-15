@@ -105,7 +105,8 @@ impl App {
         if self.validate_block(&block, latest_block) {
             self.blocks.push(block);
         } else {
-            error!("could not add block - invalid");
+            // error!("could not add block - invalid");
+            println!("ERROR => Could not add block - invalid")
         }
     }
 
@@ -352,7 +353,8 @@ async fn main() {
                     cmd if cmd.starts_with("print chain") => p2p::handle_print_chain(&swarm), // Print the current chain
                     cmd if cmd.starts_with("create block") => p2p::handle_create_block(cmd, &mut swarm), // Mine new block
                     cmd if cmd.starts_with("exit") => break,
-                    _ => error!("unknown command"), // Other commands
+                    // _ => error!("unknown command"), // Other commands
+                    _ => println!("ERROR => unknown command"), // Other commands
                 },
             }
         }
