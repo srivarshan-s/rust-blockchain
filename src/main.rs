@@ -9,7 +9,6 @@ use libp2p::{
     tcp::TokioTcpConfig,
     Transport,
 };
-// use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::time::Duration;
@@ -48,15 +47,7 @@ impl App {
 
     // Function to conceive the initial block
     fn genesis(&mut self) {
-        // Create the genesis block with pre-defined attributes
-        /* let genesis_block = Block {
-            id: 0,
-            time_stamp: Utc::now().timestamp(),
-            prev_hash: String::from("genesis"),
-            data: String::from("genesis!"),
-            nonce: 2863,
-            hash: "0000f816a87f806bb0073dcf026a64fb40c946b5abee2573702828694d5b4c43".to_string(),
-        }; */
+        // Create the genesis block
         let genesis_block = Block::new_genesis(0, "NULL".to_string(), "GENESIS BLOCK".to_string());
         self.blocks.push(genesis_block); // Push the genesis block to the blockchain
     }
@@ -111,7 +102,6 @@ impl App {
         if self.validate_block(&block, latest_block) {
             self.blocks.push(block);
         } else {
-            // error!("could not add block - invalid");
             println!("ERROR => Could not add block - invalid")
         }
     }
@@ -165,15 +155,11 @@ impl App {
 
 // Function to mine a block (calculate nonce and hash of Block)
 fn mine_block(id: u64, time_stamp: i64, prev_hash: &str, data: &str) -> (u64, String) {
-    // info!("mining block...");
     println!("INFO => Mining block...");
     // Initialize nonce value
     let mut nonce = 0;
     // Infinite loop till nonce is calculated
     loop {
-        /* if nonce % 100000 == 0 {
-            info!("nonce: {}", nonce);
-        } */
         // Calculate the hash value
         let hash = calculate_hash(id, time_stamp, prev_hash, data, nonce);
         // Convert hash value to binary
@@ -397,7 +383,6 @@ async fn main() {
                                 .publish(p2p::CHAIN_TOPIC.clone(), json.as_bytes());
                         }
                     }
-                    // _ => error!("unknown command"), // Other commands
                     _ => println!("ERROR => unknown command"), // Other commands
                 },
             }

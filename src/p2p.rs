@@ -7,7 +7,6 @@ use libp2p::{
     swarm::{NetworkBehaviourEventProcess, Swarm},
     NetworkBehaviour, PeerId,
 };
-// use log::{error, info};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -120,7 +119,6 @@ impl NetworkBehaviourEventProcess<FloodsubEvent> for AppBehaviour {
                         blocks: self.app.blocks.clone(),
                         receiver: msg.source.to_string(),
                     }) {
-                        // error!("error sending response via channel, {}", e);
                         println!("ERROR => error sending response via channel, {}", e);
                     }
                 }
