@@ -9,7 +9,7 @@ use libp2p::{
     tcp::TokioTcpConfig,
     Transport,
 };
-use log::{error, info, warn};
+// use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::time::Duration;
@@ -323,7 +323,7 @@ async fn main() {
                 _init = init_rcv.recv() => { // Listen on init channel
                     Some(p2p::EventType::Init)
                 }
-                event = swarm.select_next_some() => { // Other event (can be ignored)
+                _event = swarm.select_next_some() => { // Other event (can be ignored)
                     // info!("Unhandled Swarm Event: {:?}", event);
                     None
                 },
