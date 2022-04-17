@@ -18,6 +18,7 @@ use tokio::{
     sync::mpsc,
     time::sleep,
 };
+use colored::Colorize;
 
 // Import module
 mod p2p;
@@ -57,7 +58,8 @@ impl App {
         // Check if the previous hash value matches the has value of the last block
         if block.prev_hash != prev_block.hash {
             println!(
-                "WARNING => Block with id: {} has wrong previous hash",
+                "{} {} Block with id: {} has wrong previous hash",
+                format!("WARNING").bold().yellow(), format!("=>").yellow(),
                 block.id
             );
             return false;
@@ -67,7 +69,8 @@ impl App {
             .starts_with(DIFFICULTY_PREFIX)
         {
             println!(
-                "WARNING => Block with id: {} has invalid difficulty",
+                "{} {} Block with id: {} has invalid difficulty",
+                format!("WARNING").bold().yellow(), format!("=>").yellow(),
                 block.id
             );
             return false;
@@ -75,7 +78,8 @@ impl App {
         // Check if the block ID is correct
         else if block.id != prev_block.id + 1 {
             println!(
-                "WARNING => Block with id: {} is not the next block after the latest block: {}",
+                "{} {} Block with id: {} is not the next block after the latest block: {}",
+                format!("WARNING").bold().yellow(), format!("=>").yellow(),
                 block.id, prev_block.id,
             );
             return false;
@@ -89,7 +93,7 @@ impl App {
             block.nonce,
         )) != block.hash
         {
-            println!("WARNING => block with id: {} has invalid hash", block.id);
+            println!("{} {} block with id: {} has invalid hash", format!("WARNING").bold().yellow(), format!("=>").yellow(), block.id);
             return false;
         }
         true
@@ -102,7 +106,7 @@ impl App {
         if self.validate_block(&block, latest_block) {
             self.blocks.push(block);
         } else {
-            println!("ERROR => Could not add block - invalid")
+            println!("{} {} Could not add block - invalid", format!("ERROR").bold().red(), format!("=>").red())
         }
     }
 
@@ -155,7 +159,8 @@ impl App {
 
 // Function to mine a block (calculate nonce and hash of Block)
 fn mine_block(id: u64, time_stamp: i64, prev_hash: &str, data: &str) -> (u64, String) {
-    println!("INFO => Mining block...");
+    print!("{} {} ", format!("INFO").green().bold(), format!("=>").green());
+    println!("Mining block...");
     // Initialize nonce value
     let mut nonce = 0;
     // Infinite loop till nonce is calculated
@@ -166,8 +171,9 @@ fn mine_block(id: u64, time_stamp: i64, prev_hash: &str, data: &str) -> (u64, St
         let binary_hash = hash_to_binary(&hash);
         // Check if hash value satisifies requirement (difficulty)
         if binary_hash.starts_with(DIFFICULTY_PREFIX) {
+            print!("{} {} ", format!("INFO").green().bold(), format!("=>").green());
             println!(
-                "INFO => Block mined! \nnonce: {} \nhash: {} \nbinary hash: {}",
+                "Block mined! \nnonce: {} \nhash: {} \nbinary hash: {}",
                 nonce,
                 hex::encode(&hash),
                 binary_hash
@@ -248,7 +254,8 @@ async fn main() {
     pretty_env_logger::init();
 
     // Print PEER ID
-    println!("INFO => Peer Id: {}", p2p::PEER_ID.clone());
+    print!("{} {} ", format!("INFO").green().bold(), format!("=>").green());
+    println!("Peer Id: {}", p2p::PEER_ID.clone());
 
     // Initialize Response Event Channel
     let (response_sender, mut response_rcv) = mpsc::unbounded_channel();
@@ -292,9 +299,14 @@ async fn main() {
     // Start asynchronous coroutine
     spawn(async move {
         sleep(Duration::from_secs(1)).await; // Wait for 1 second
-        println!("INFO => Sending init event");
+        print!("{} {} ", format!("INFO").green().bold(), format!("=>").green());
+        println!("Sending init event");
         init_sender.send(true).expect("can send init event"); // Send Initialization trigger
     });
+
+    println!();
+    println!("{}", format!("======================================================================").blue());
+    println!();
 
     // Infinite loop
     loop {
@@ -310,7 +322,6 @@ async fn main() {
                     Some(p2p::EventType::Init)
                 }
                 _event = swarm.select_next_some() => { // Other event (can be ignored)
-                    // info!("Unhandled Swarm Event: {:?}", event);
                     None
                 },
             }
@@ -323,8 +334,9 @@ async fn main() {
                 p2p::EventType::Init => {
                     let peers = p2p::get_list_peers(&swarm); // Obtain the connected peers
                     swarm.behaviour_mut().app.genesis(); // Create the genesis block
-                                                         // Print the connected nodes
-                    println!("INFO => Connected nodes: {}", peers.len());
+                    // Print the connected nodes
+                    print!("{} {} ", format!("INFO").green().bold(), format!("=>").green());                            
+                    println!("Connected nodes: {}", peers.len());
                     if !peers.is_empty() {
                         // Check if peers are connected
                         // Request chain from last peer
@@ -355,35 +367,41 @@ async fn main() {
                         .publish(p2p::CHAIN_TOPIC.clone(), json.as_bytes());
                 }
                 // Check of it is user input event
-                p2p::EventType::Input(line) => match line.as_str() {
-                    "print peers" => p2p::handle_print_peers(&swarm), // Print the peers connected to the network
-                    cmd if cmd.starts_with("print chain") => p2p::handle_print_chain(&swarm), // Print the current chain
-                    cmd if cmd.starts_with("create block") => {
-                        p2p::handle_create_block(cmd, &mut swarm)
-                    } // Mine new block
-                    cmd if cmd.starts_with("exit") => break,
-                    cmd if cmd.starts_with("update chain") => {
-                        let peers = p2p::get_list_peers(&swarm); // Obtain the connected peers
-                        if !peers.is_empty() {
-                            // Check if peers are connected
-                            // Request chain from last peer
-                            let req = p2p::LocalChainRequest {
-                                from_peer_id: peers
-                                    .iter()
-                                    .last()
-                                    .expect("at least one peer")
-                                    .to_string(),
-                            };
-                            // JSONify the request
-                            let json = serde_json::to_string(&req).expect("can jsonify request");
-                            // Publish the request to the network
-                            swarm
-                                .behaviour_mut()
-                                .floodsub
-                                .publish(p2p::CHAIN_TOPIC.clone(), json.as_bytes());
+                p2p::EventType::Input(line) => {
+                    match line.as_str() {
+                        "print peers" => p2p::handle_print_peers(&swarm), // Print the peers connected to the network
+                        cmd if cmd.starts_with("print chain") => p2p::handle_print_chain(&swarm), // Print the current chain
+                        cmd if cmd.starts_with("create block") => {
+                            p2p::handle_create_block(cmd, &mut swarm) // Mine new block
                         }
+                        cmd if cmd.starts_with("exit") => break,
+                        cmd if cmd.starts_with("update chain") => {
+                            let peers = p2p::get_list_peers(&swarm); // Obtain the connected peers
+                            if !peers.is_empty() {
+                                // Check if peers are connected
+                                // Request chain from last peer
+                                let req = p2p::LocalChainRequest {
+                                    from_peer_id: peers
+                                        .iter()
+                                        .last()
+                                        .expect("at least one peer")
+                                        .to_string(),
+                                };
+                                // JSONify the request
+                                let json = serde_json::to_string(&req).expect("can jsonify request");
+                                // Publish the request to the network
+                                swarm
+                                    .behaviour_mut()
+                                    .floodsub
+                                    .publish(p2p::CHAIN_TOPIC.clone(), json.as_bytes());
+                            }
+                        }
+                        _ => println!("{} {} unknown command", format!("ERROR").bold().red(), format!("=>").red()), // Other commands
                     }
-                    _ => println!("ERROR => unknown command"), // Other commands
+                    println!();
+                    println!("{}", format!("======================================================================").blue());
+                    println!();
+
                 },
             }
         }
