@@ -112,7 +112,7 @@ impl NetworkBehaviourEventProcess<FloodsubEvent> for AppBehaviour {
             }
             // Check if event is LocalChainRequest
             else if let Ok(resp) = serde_json::from_slice::<LocalChainRequest>(&msg.data) {
-                println!("INFO => Sending local chain to {}", msg.source.to_string());
+                println!("INFO => Sending local chain to {}", msg.source);
                 let peer_id = resp.from_peer_id;
                 // Send ChainResponse with chain and receiver
                 if PEER_ID.to_string() == peer_id {
@@ -127,7 +127,7 @@ impl NetworkBehaviourEventProcess<FloodsubEvent> for AppBehaviour {
             }
             // Check if event is a Block
             else if let Ok(block) = serde_json::from_slice::<Block>(&msg.data) {
-                println!("INFO => Received new block from {}", msg.source.to_string());
+                println!("INFO => Received new block from {}", msg.source);
                 // Add block to chain
                 self.app.try_add_block(block);
             }
